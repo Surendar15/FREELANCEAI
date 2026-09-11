@@ -152,13 +152,17 @@ class BudgetService:
 
             await self.db.commit()
 
-            # Trigger Agent 5 Project Planning Intelligence Agent
+            # Trigger Agent 5 (Project Plan) -> Agent 6 (Progress Monitoring) in strict series
             try:
                 from app.services.project_plan_service import ProjectPlanService
                 plan_service = ProjectPlanService(db=self.db)
                 await plan_service.get_or_generate_plan(project_id)
+
+                from app.services.progress_service import ProgressService
+                progress_service = ProgressService(db=self.db)
+                await progress_service.get_or_initialize_progress(project_id)
             except Exception as plan_exc:
-                logger.warning("Agent 5 plan auto-generation error on start", error=str(plan_exc))
+                logger.warning("Agent 5/6 auto-generation error on start", error=str(plan_exc))
 
             return RespondBudgetOfferResponse(
                 project_id=project_id,

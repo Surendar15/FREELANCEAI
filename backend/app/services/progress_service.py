@@ -50,11 +50,48 @@ class ProgressService:
         if not project:
             raise NotFoundError(resource="Project", resource_id=project_id)
 
+        from app.models.project import ProjectStatus
+        from app.models.project_match import MatchStatus
+
+        assigned_match = await self.repo.get_assigned_match(project_id)
+        is_started = (
+            project.status in [ProjectStatus.IN_PROGRESS, ProjectStatus.COMPLETED]
+            or (assigned_match and assigned_match.status == MatchStatus.STARTED)
+        )
+
+        if not is_started:
+            return ProjectProgressOverviewResponse(
+                project_id=project_id,
+                tasks=[],
+                overall_progress_percent=0.0,
+                is_on_track=True,
+                current_phase="Not Started",
+                days_elapsed=0,
+                total_estimated_days=0,
+                delay_warning=None,
+                ai_recovery_summary=None,
+                is_delay_failed=False,
+            )
+
         tasks = await self.repo.get_tasks_by_project(project_id)
 
         # 1. Initialize tasks from Agent 5 ProjectPlan if empty
         if not tasks:
             tasks = await self._initialize_tasks_from_plan(project_id, project)
+
+        if not tasks:
+            return ProjectProgressOverviewResponse(
+                project_id=project_id,
+                tasks=[],
+                overall_progress_percent=0.0,
+                is_on_track=True,
+                current_phase="Not Started",
+                days_elapsed=0,
+                total_estimated_days=0,
+                delay_warning=None,
+                ai_recovery_summary=None,
+                is_delay_failed=False,
+            )
 
         # 2. Check for overdue/failed milestone status and grace period (2 days)
         now_utc = datetime.now(timezone.utc)
@@ -166,6 +203,9 @@ class ProgressService:
         Creates milestone task records from Agent 5 ProjectPlan in database.
         """
         plan = await self.repo.get_plan_by_project(project_id)
+        if not plan or not plan.plan_json:
+            return []
+
         phases = plan.plan_json.get("phases", []) if plan and plan.plan_json else []
 
         created_tasks: List[ProjectProgress] = []
@@ -193,29 +233,7 @@ class ProgressService:
                 curr_start = p_end
 
         if not created_tasks:
-            # Fallback default 5 phases if no plan found
-            default_tasks = [
-                (1, "Requirement Verification & Spec Finalization", 2),
-                (2, "Backend Architecture & REST API Implementation", 7),
-                (3, "Frontend Interface & Interactive Dashboard", 6),
-                (4, "End-to-End System Testing & Quality Assurance", 3),
-                (5, "Production Cloud Deployment & Documentation", 2),
-            ]
-            c_time = datetime.now(timezone.utc)
-            for m_num, t_name, dur in default_tasks:
-                e_time = c_time + timedelta(days=dur)
-                created_tasks.append(
-                    ProjectProgress(
-                        project_id=project_id,
-                        milestone_number=m_num,
-                        task_name=t_name,
-                        description=f"Phase {m_num} Deliverable",
-                        planned_start_date=c_time,
-                        planned_end_date=e_time,
-                        status="IN_PROGRESS" if m_num == 1 else "PENDING",
-                    )
-                )
-                c_time = e_time
+            return []
 
         return await self.repo.save_tasks(created_tasks)
 

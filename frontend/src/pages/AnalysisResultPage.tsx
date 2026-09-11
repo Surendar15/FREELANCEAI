@@ -382,11 +382,13 @@ const AnalysisResultPage: React.FC = () => {
       {/* Budget Intelligence Agent (Agent 4) */}
       <BudgetIntelligenceSection projectId={project.id} />
 
-      {/* Project Planning Intelligence Agent (Agent 5) */}
-      <ProjectPlanningSection projectId={project.id} />
-
-      {/* Progress Monitoring & Recovery Intelligence Agent (Agent 6) */}
-      <ClientProgressTracker projectId={project.id} />
+      {/* Project Planning (Agent 5) & Progress Tracker (Agent 6) — rendered only after project start */}
+      {(project.status === 'in_progress' || project.status === 'completed') && (
+        <>
+          <ProjectPlanningSection projectId={project.id} />
+          <ClientProgressTracker projectId={project.id} />
+        </>
+      )}
 
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-4 justify-between items-center">

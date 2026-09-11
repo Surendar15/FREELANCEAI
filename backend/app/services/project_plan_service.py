@@ -37,10 +37,23 @@ class ProjectPlanService:
         """
         logger.info("Executing Agent 5 project planning workflow", project_id=str(project_id))
 
-        # 1. Verify project
+        # 1. Verify project & check if freelancer has accepted budget / project started
         project = await self.repo.get_project(project_id)
         if not project:
             raise NotFoundError(resource="Project", resource_id=project_id)
+
+        from app.models.project import ProjectStatus
+        from app.models.project_match import MatchStatus
+
+        assigned_match = await self.repo.get_assigned_match(project_id)
+        is_started = (
+            project.status in [ProjectStatus.IN_PROGRESS, ProjectStatus.COMPLETED]
+            or (assigned_match and assigned_match.status == MatchStatus.STARTED)
+        )
+        if not is_started:
+            raise BadRequestError(
+                message="Project plan cannot be generated until the freelancer accepts the budget recommendation and starts the project."
+            )
 
         # 2. Check if project plan already exists in database (PERMANENT DB REUSE RULE)
         existing_plan = await self.repo.get_plan_by_project(project_id)
@@ -49,7 +62,6 @@ class ProjectPlanService:
             return existing_plan
 
         # 3. Fetch assigned freelancer & approved budget for prompt context
-        assigned_match = await self.repo.get_assigned_match(project_id)
         freelancer = assigned_match.freelancer if assigned_match else None
         freelancer_dict = {
             "id": str(freelancer.id),
@@ -97,6 +109,21 @@ class ProjectPlanService:
 
     async def get_plan(self, project_id: uuid.UUID) -> Optional[ProjectPlan]:
         """
-        Get stored project plan if present.
+        Get stored project plan if present and project has been started.
         """
+        project = await self.repo.get_project(project_id)
+        if not project:
+            return None
+
+        from app.models.project import ProjectStatus
+        from app.models.project_match import MatchStatus
+
+        assigned_match = await self.repo.get_assigned_match(project_id)
+        is_started = (
+            project.status in [ProjectStatus.IN_PROGRESS, ProjectStatus.COMPLETED]
+            or (assigned_match and assigned_match.status == MatchStatus.STARTED)
+        )
+        if not is_started:
+            return None
+
         return await self.repo.get_plan_by_project(project_id)

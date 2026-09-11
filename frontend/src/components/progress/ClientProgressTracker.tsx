@@ -33,7 +33,7 @@ export const ClientProgressTracker: React.FC<ClientProgressTrackerProps> = ({ pr
     return <div className="skeleton h-72 rounded-2xl mt-8" />;
   }
 
-  if (!overview) return null;
+  if (!overview || (overview.tasks && overview.tasks.length === 0)) return null;
 
   const handleAccept = async () => {
     setIsAccepting(true);

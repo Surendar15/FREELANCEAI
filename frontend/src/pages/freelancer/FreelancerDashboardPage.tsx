@@ -525,8 +525,8 @@ export const FreelancerDashboardPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Render Agent 5 Project Plan & Agent 6 Progress Tracker ONLY if project is NOT completed */}
-                  {(match.status === 'ASSIGNED' || match.status === 'STARTED') && inv.project_status !== 'completed' && (match.status as string) !== 'COMPLETED' && (
+                  {/* Render Agent 5 Project Plan & Agent 6 Progress Tracker ONLY after freelancer starts project */}
+                  {(match.status === 'STARTED' || budgetResponseState === 'STARTED' || inv.project_status === 'in_progress') && inv.project_status !== 'completed' && (match.status as string) !== 'COMPLETED' && (
                     <>
                       <ProjectPlanningSection projectId={match.project_id} isFreelancerView={true} />
                       <FreelancerProgressTracker projectId={match.project_id} />

@@ -299,14 +299,17 @@ export const FreelancerProjectDetailPage: React.FC = () => {
         <BudgetIntelligenceSection projectId={project.id} />
       )}
 
-      {/* AGENT 5: PROJECT PLANNING INTELLIGENCE ROADMAP (HIDDEN IF PROJECT COMPLETED) */}
-      {!isCompleted && (activeTab === 'all' || activeTab === 'planning') && (
-        <ProjectPlanningSection projectId={project.id} isFreelancerView={true} />
-      )}
+      {/* AGENT 5 & AGENT 6: Rendered only after project is started */}
+      {(project.status === 'in_progress' || project.status === 'completed') && (
+        <>
+          {!isCompleted && (activeTab === 'all' || activeTab === 'planning') && (
+            <ProjectPlanningSection projectId={project.id} isFreelancerView={true} />
+          )}
 
-      {/* AGENT 6: PROGRESS MONITORING & DELIVERY */}
-      {(activeTab === 'all' || activeTab === 'progress') && (
-        <FreelancerProgressTracker projectId={project.id} />
+          {(activeTab === 'all' || activeTab === 'progress') && (
+            <FreelancerProgressTracker projectId={project.id} />
+          )}
+        </>
       )}
     </FreelancerLayout>
   );

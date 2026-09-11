@@ -166,8 +166,12 @@ const ProjectDetailPage: React.FC = () => {
           <TalentDiscoverySection projectId={project.id} />
           <ProposalIntelligenceSection projectId={project.id} />
           <BudgetIntelligenceSection projectId={project.id} />
-          <ProjectPlanningSection projectId={project.id} />
-          <ClientProgressTracker projectId={project.id} />
+          {(project.status === 'in_progress' || project.status === 'completed') && (
+            <>
+              <ProjectPlanningSection projectId={project.id} />
+              <ClientProgressTracker projectId={project.id} />
+            </>
+          )}
         </>
       )}
     </DashboardLayout>

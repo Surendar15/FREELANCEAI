@@ -1,11 +1,10 @@
 // src/pages/AddProjectPage.tsx
 // Add new project form with AI analysis trigger
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FileText, DollarSign, Calendar, Upload, Brain,
-  AlertCircle, X, Info, Sparkles,
+  FileText, Brain, AlertCircle, Sparkles,
 } from 'lucide-react';
 import { projectService } from '@/services/projectService';
 import DashboardLayout from '@/layouts/DashboardLayout';
@@ -16,15 +15,11 @@ const MAX_DESCRIPTION_LENGTH = 10000;
 
 const AddProjectPage: React.FC = () => {
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState<AnalyzeProjectRequest>({
     title: '',
     description: '',
-    budget: undefined,
-    deadline: undefined,
   });
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -38,19 +33,8 @@ const AddProjectPage: React.FC = () => {
     setError(null);
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'budget' ? (value ? parseFloat(value) : undefined) : value,
+      [name]: value,
     }));
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        setError('File size must be less than 10MB');
-        return;
-      }
-      setUploadedFile(file);
-    }
   };
 
   const handleAnalyze = async (e: React.FormEvent) => {
@@ -66,11 +50,7 @@ const AddProjectPage: React.FC = () => {
     // Navigate to analyzing page immediately with the form data
     navigate('/dashboard/analyzing', {
       state: {
-        projectData: {
-          ...formData,
-          deadline: formData.deadline || undefined,
-          budget: formData.budget || undefined,
-        },
+        projectData: formData,
       },
     });
   };
@@ -188,113 +168,6 @@ More detail = better AI analysis.`}
                 {MIN_DESCRIPTION_LENGTH - descriptionLength} more characters needed
               </p>
             )}
-          </div>
-
-          {/* Budget + Deadline Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Budget */}
-            <div>
-              <label htmlFor="budget" className="input-label">
-                Budget (₹ INR) <span className="text-gray-500 font-normal">(optional)</span>
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
-                <input
-                  id="budget"
-                  name="budget"
-                  type="number"
-                  value={formData.budget || ''}
-                  onChange={handleChange}
-                  placeholder="50000"
-                  className="input-field pl-11"
-                  min={0}
-                  step={500}
-                />
-              </div>
-              <p className="text-gray-600 text-xs mt-1.5 flex items-center gap-1">
-                <Info size={10} />
-                AI will suggest realistic budget if not specified
-              </p>
-            </div>
-
-            {/* Deadline */}
-            <div>
-              <label htmlFor="deadline" className="input-label">
-                Deadline <span className="text-gray-500 font-normal">(optional)</span>
-              </label>
-              <div className="relative">
-                <Calendar size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
-                <input
-                  id="deadline"
-                  name="deadline"
-                  type="date"
-                  value={formData.deadline as string || ''}
-                  onChange={handleChange}
-                  className="input-field pl-11"
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </div>
-              <p className="text-gray-600 text-xs mt-1.5 flex items-center gap-1">
-                <Info size={10} />
-                AI will estimate realistic timeline if not specified
-              </p>
-            </div>
-          </div>
-
-          {/* File Upload */}
-          <div>
-            <label className="input-label">
-              Supporting Document <span className="text-gray-500 font-normal">(optional)</span>
-            </label>
-            <div
-              className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-200 ${
-                uploadedFile
-                  ? 'border-emerald-500/40 bg-emerald-500/5'
-                  : 'border-white/10 hover:border-blue-500/30 hover:bg-blue-500/5'
-              }`}
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                const file = e.dataTransfer.files[0];
-                if (file) {
-                  setUploadedFile(file);
-                }
-              }}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                onChange={handleFileChange}
-                className="hidden"
-                accept=".pdf,.doc,.docx,.txt,.md"
-              />
-
-              {uploadedFile ? (
-                <div className="flex items-center justify-center gap-3">
-                  <Upload size={18} className="text-emerald-400" />
-                  <span className="text-emerald-400 text-sm font-medium">{uploadedFile.name}</span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setUploadedFile(null);
-                    }}
-                    className="text-gray-500 hover:text-red-400 transition-colors"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <Upload size={24} className="text-gray-600 mx-auto mb-2" />
-                  <p className="text-gray-400 text-sm">
-                    Drop file here or <span className="text-blue-400">browse</span>
-                  </p>
-                  <p className="text-gray-600 text-xs mt-1">PDF, DOC, DOCX, TXT, MD — max 10MB</p>
-                </div>
-              )}
-            </div>
           </div>
         </div>
 

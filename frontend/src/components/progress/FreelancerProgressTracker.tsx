@@ -58,7 +58,7 @@ export const FreelancerProgressTracker: React.FC<FreelancerProgressTrackerProps>
     return <div className="skeleton h-72 rounded-2xl mt-8" />;
   }
 
-  if (!overview) return null;
+  if (!overview || (overview.tasks && overview.tasks.length === 0)) return null;
 
   const tasks = overview.tasks || [];
   const sub = overview.submission;
