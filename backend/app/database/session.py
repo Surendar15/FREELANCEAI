@@ -21,14 +21,22 @@ logger = get_logger(__name__)
 
 # ── Async Engine ───────────────────────────────────────────────────────────
 
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=settings.DEBUG,          # Log SQL queries in debug mode
-    pool_size=10,                  # Connection pool size
-    max_overflow=20,               # Extra connections under load
-    pool_pre_ping=True,            # Verify connections before use
-    pool_recycle=3600,             # Recycle connections every hour
-)
+if "sqlite" in settings.DATABASE_URL:
+    engine = create_async_engine(
+        settings.DATABASE_URL,
+        echo=settings.DEBUG,
+        connect_args={"check_same_thread": False},
+        poolclass=NullPool,
+    )
+else:
+    engine = create_async_engine(
+        settings.DATABASE_URL,
+        echo=settings.DEBUG,          # Log SQL queries in debug mode
+        pool_size=10,                  # Connection pool size
+        max_overflow=20,               # Extra connections under load
+        pool_pre_ping=True,            # Verify connections before use
+        pool_recycle=3600,             # Recycle connections every hour
+    )
 
 # ── Session Factory ────────────────────────────────────────────────────────
 

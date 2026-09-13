@@ -37,16 +37,16 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
 
     # ── Database ─────────────────────────────────────────────────
-    DATABASE_URL: str
-    DATABASE_URL_SYNC: str
+    DATABASE_URL: str = "sqlite+aiosqlite:///agentverse.db"
+    DATABASE_URL_SYNC: str = ""
 
     # ── JWT Authentication ────────────────────────────────────────
-    SECRET_KEY: str
+    SECRET_KEY: str = "agentverse-production-secret-key-change-in-env-32-chars-min"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
 
     # ── OpenRouter AI ─────────────────────────────────────────────
-    OPENROUTER_API_KEY: str
+    OPENROUTER_API_KEY: str = ""
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
     OPENROUTER_MODEL: str = "deepseek/deepseek-chat-v3-0324:free"
     OPENROUTER_TIMEOUT: int = 120
@@ -59,10 +59,45 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE_MB: int = 10
     UPLOAD_DIR: str = "uploads/"
 
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def assemble_db_url(cls, v: str) -> str:
+        if isinstance(v, str) and v.strip():
+            v = v.strip()
+            # Render and other clouds give postgres:// which SQLAlchemy deprecated
+            if v.startswith("postgres://"):
+                return v.replace("postgres://", "postgresql+asyncpg://", 1)
+            elif v.startswith("postgresql://") and not v.startswith("postgresql+"):
+                return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v or "sqlite+aiosqlite:///agentverse.db"
+
+    @field_validator("DATABASE_URL_SYNC", mode="before")
+    @classmethod
+    def assemble_sync_db_url(cls, v: str) -> str:
+        if isinstance(v, str) and v.strip():
+            v = v.strip()
+            if v.startswith("postgres://"):
+                return v.replace("postgres://", "postgresql://", 1)
+            elif v.startswith("postgresql+asyncpg://"):
+                return v.replace("postgresql+asyncpg://", "postgresql://", 1)
+            return v
+        return ""
+
+    def model_post_init(self, __context) -> None:
+        super().model_post_init(__context)
+        # If DATABASE_URL_SYNC is not explicitly set, auto-derive from DATABASE_URL
+        if not self.DATABASE_URL_SYNC:
+            if "sqlite+aiosqlite:///" in self.DATABASE_URL:
+                self.DATABASE_URL_SYNC = self.DATABASE_URL.replace("sqlite+aiosqlite:///", "sqlite:///")
+            elif "postgresql+asyncpg://" in self.DATABASE_URL:
+                self.DATABASE_URL_SYNC = self.DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
+            else:
+                self.DATABASE_URL_SYNC = self.DATABASE_URL
+
     @property
     def allowed_origins_list(self) -> List[str]:
         """Parse comma-separated CORS origins into a list."""
-        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
+        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
 
     @property
     def max_file_size_bytes(self) -> int:
